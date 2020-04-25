@@ -2,6 +2,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import random
 import sklearn.preprocessing
 import time
 
@@ -31,10 +32,10 @@ def _normalize_df(df: pd.DataFrame, normalize: bool) -> None:
                 df.loc[:, col].values.reshape(-1, 1))
 
 
-def add_harmonic(arr: np.array, n: int, perc: float, phase: int) -> None:
+def add_oscillation(arr: np.array, n: int, perc: float, phase: int) -> None:
     x = np.linspace(phase, (2 * n * np.pi) + phase, arr.shape[0])
-    harmonic_signal = (np.sin(x) * (perc / 100)).reshape(-1, 1)
-    arr += harmonic_signal
+    osc_signal = (np.sin(x) * (perc / 100)).reshape(-1, 1)
+    arr += osc_signal
 
 
 path = '/Users/kq794tb/Desktop/Politechnika/praca_inzynierska/data/dane3.csv'
@@ -97,61 +98,98 @@ ax3.legend(loc='upper right', prop={'size': 12})
 plt.show()
 
 
-def add_harmonic(arr: np.array, n: int, perc: float, phase: int) -> None:
-    x = np.linspace(phase, (2 * n * np.pi) + phase, arr.shape[0])
-    harmonic_signal = (np.sin(x) * (perc / 100)).reshape(-1, 1)
-    arr += harmonic_signal
+# """ Testing on corrupted data """
+# voltage = np.copy(df.loc[:, 'u'].values.reshape(-1, 1))
+# current = np.copy(df.loc[:, 'i'].values.reshape(-1, 1))
+#
+# parts = 8
+# n_samples_part = int(voltage.shape[0] / parts)
+#
+# n_harmonics = list(range(8))
+#
+# u_list = [voltage]
+# i_list = [current]
+# for i in range(parts):
+#     part = i * n_samples_part
+#     u_signal = np.copy(voltage[part: part + n_samples_part])
+#     n_harmonic = random.choice(n_harmonics)
+#     u_harmonic_perc = random.uniform(0.5, 4)
+#     # phase = random.randint(0, 400)
+#     phase = 0
+#     add_oscillation(u_signal, n_harmonic, u_harmonic_perc, phase)
+#     u_list.append(u_signal)
+#
+#     i_signal = np.copy(current[part: part + n_samples_part])
+#     i_harmonic_perc = random.uniform(1, 15)
+#     add_oscillation(i_signal, n_harmonic, i_harmonic_perc, phase)
+#     i_list.append(i_signal)
+#
+#
+# voltage = np.concatenate(u_list)
+# current = np.concatenate(i_list)
+# x_real = np.concatenate((current, voltage), axis=1)
+#
+# # x_real = X
+# Xs = []
+# ys = []
+# for i in range(len(x_real) - n_timestamps):
+#     Xs.append(x_real[i:i+n_timestamps])
+#
+# x_real = np.array(Xs)
+# real_loss = model.calculate_reconstruction_loss(x_real)
+# #
+# fig, (ax1, ax2, ax3) = plt.subplots(3, sharex=True)
+# ax1.plot(voltage)
+# ax1.set_title('u(t)')
+#
+# ax2.plot(current)
+# ax2.set_title('i(t)')
+#
+# ax3.plot(real_loss)
+# ax3.set_title('Reconstruction loss')
+# ax3.axhline(y=anomaly_threshold, label='Anomaly threshold', c='r', linestyle='--')
+# ax3.legend(loc='upper right')
+#
+#
+# plt.show()
 
 
 """ Testing on corrupted data """
-u1 = np.copy(df.loc[:, 'u'].values.reshape(-1, 1))
-part = int(u1.shape[0] / 8)
+voltage = np.copy(df.loc[:, 'u'].values.reshape(-1, 1))
+current = np.copy(df.loc[:, 'i'].values.reshape(-1, 1))
 
-u2 = np.copy(u1[:part])
-u3 = np.copy(u1[:part])
-u4 = np.copy(u1[:part])
-u5 = np.copy(u1[:part])
-u6 = np.copy(u1[:part])
-u7 = np.copy(u1[:part])
-u8 = np.copy(u1[:part])
-u9 = np.copy(u1[:part])
+parts = 8
+n_samples_part = int(voltage.shape[0] / parts)
 
-add_harmonic(u2, 3, 2, 0)
-add_harmonic(u3, 5, 2, 0)
-add_harmonic(u4, 3, 4, 0)
-add_harmonic(u5, 3, 4, 0)
-add_harmonic(u6, 11, 5, 0)
-add_harmonic(u7, 7, 6, 0)
-add_harmonic(u8, 5, 4, 0)
-add_harmonic(u9, 11, 4, 0)
-voltage = np.concatenate((u1, u2, u3, u4, u5, u6, u7, u8, u9))
-# voltage = u1
+n_harmonics = list(range(8))
+
+u_list = [voltage]
+i_list = [current]
+for i in range(parts):
+    part = i * n_samples_part
+    u_signal = np.copy(voltage[part: part + n_samples_part])
+    i_signal = np.copy(current[part: part + n_samples_part])
+
+    if i < 1:
+        noise_signal_part = int(u_signal.shape[0]/3)
+        u_signal = np.full(u_signal.shape, u_signal[0])
+        add_oscillation(u_signal[:noise_signal_part], 5, 4, 0)
+        add_oscillation(u_signal[noise_signal_part:noise_signal_part*2], 5, 3, 0)
+        add_oscillation(u_signal[noise_signal_part:], 7, 1.5, 0)
+
+        i_signal = np.full(i_signal.shape, i_signal[0])
+        add_oscillation(i_signal[:noise_signal_part], 5, 4, 0)
+        add_oscillation(i_signal[noise_signal_part:noise_signal_part*2], 5, 3, 0)
+        add_oscillation(i_signal[noise_signal_part:], 7, 1.5, 0)
+
+    u_list.append(u_signal)
+    i_list.append(i_signal)
 
 
-i1 = np.copy(df.loc[:, 'i'].values.reshape(-1, 1))
-i2 = np.copy(i1[:part])
-i3 = np.copy(i1[:part])
-i4 = np.copy(i1[:part])
-i5 = np.copy(i1[:part])
-i6 = np.copy(i1[:part])
-i7 = np.copy(i1[:part])
-i8 = np.copy(i1[:part])
-i9 = np.copy(i1[:part])
-
-add_harmonic(i2, 3, 5, 0)
-add_harmonic(i3, 5, 6, 0)
-add_harmonic(i4, 3, 6, 0)
-add_harmonic(i5, 3, 11, 0)
-add_harmonic(i6, 11, 11, 0)
-add_harmonic(i7, 5, 11, 0)
-add_harmonic(i8, 7, 5, 0)
-add_harmonic(i9, 11, 6, 0)
-current = np.concatenate((i1, i2, i3, i4, i5, i6, i7, i8, i9))
-# current = i1
-
+voltage = np.concatenate(u_list)
+current = np.concatenate(i_list)
 x_real = np.concatenate((current, voltage), axis=1)
 
-# x_real = X
 Xs = []
 ys = []
 for i in range(len(x_real) - n_timestamps):
@@ -170,7 +208,7 @@ ax2.set_title('i(t)')
 ax3.plot(real_loss)
 ax3.set_title('Reconstruction loss')
 ax3.axhline(y=anomaly_threshold, label='Anomaly threshold', c='r', linestyle='--')
-ax3.legend(loc='upper right')
-
+ax3.legend(loc='upper right', prop={'size': 12})
 
 plt.show()
+
